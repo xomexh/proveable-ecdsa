@@ -302,9 +302,25 @@ async function interoperableBigint(){
     console.log(typeBigInt.valueOf()*typeBig);
 }
 
+async function proveableECDSAtest(){
+    const e = 71434212616171258881167833273589199798160798266365951356480825534922218147392n
+    const r = 81447002185398275822095816021075624568224161238760933553486802907392490238292n
+    const s = 7946449788279160792259694071968415267819694180200632783208719855055985626056n
+
+  const publicKey = {
+    x:59584560953242332934734563514771605484743832818030684748574986816321863477095n,
+    y:35772424464574968427090264313855970786042086272413829287792016132157953251778n
+  }
+  const result = await proveableECDSA(e ,s, r,publicKey.x,publicKey.y)
+  if(result){
+    console.log("Valid Signature!")
+  }
+}
+
 
 //await actualTestUsingTLSNValues();
 //await interoperableBigint();
+await proveableECDSAtest(); 
 
 
   

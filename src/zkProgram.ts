@@ -45,7 +45,7 @@ const ZkonZkProgramECDSA = ZkProgram({
             Provable.log("Inside zkProgram:",ECDSASign.messageHash)
             const checkECDSASignature: Bool = await checkECDSA(ECDSASign.messageHash.valueOf(), ECDSASign.s.valueOf(), ECDSASign.r.valueOf());
             Provable.log("ECDSA Validation Inside zkProgram", checkECDSASignature);
-            //assert.assertEquals(checkECDSASignature, "zkAssertion fails?");
+            assert.assertEquals(checkECDSASignature, "zkAssertion fails?");
       
             decommitment.assertEquals(commitment.commitment);
         }
