@@ -194,7 +194,8 @@ async function generatePublicKey(privateKey: bigint, p:bigint): Promise<[bigint,
     return publicKey;
 }
 
-export async function proveableECDSA(ee:bigint , s: bigint, r: bigint, pub_x: bigint, pub_y: bigint): Promise<boolean> {
+export async function proveableECDSAnonField(ee:bigint , s: bigint, r: bigint, pub_x: bigint, pub_y: bigint): Promise<boolean> {
+    console.log("Inside ECDSA-library function.")
     const p = BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F');
     const n = BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141');
 
@@ -202,9 +203,9 @@ export async function proveableECDSA(ee:bigint , s: bigint, r: bigint, pub_x: bi
     const G_y= BigInt('32670510020758816978083085130507043184471273380659243275938904335757337482424')
 
     // 1. Verify that r and s are integers in [1, n-1]
-    if (r <= 0n || r >= n || s <= 0n || s >= n) {
-        return false;
-    }
+    // if (r <= 0n || r >= n || s <= 0n || s >= n) {
+    //     return false;
+    // }
 
     // 2. Calculate e = HASH(m). Recieve this directly from zkProgram.
     const e = BigInt(ee);
@@ -223,26 +224,79 @@ export async function proveableECDSA(ee:bigint , s: bigint, r: bigint, pub_x: bi
     const R = await ellipticCurveAdd(point1[0], point1[1], point2[0], point2[1], p);
     
     await modularTests(point1,point1,G_x,G_y,p);
-    console.log("Recovery Point:",R);
-    console.log("Siganture recieved:", {r:r, s:s})
-    console.log("X-affine of RecoveryPoint R == r of signature. Hence valid signature.")
-
+   
     // 6. If (x, y) = O (the point at infinity), the signature is invalid
-    if (R[0] === 0n && R[1] === 0n) {
-        console.log("Point at Infinity.")
-        return false;
-    }
+    // if (R[0] === 0n && R[1] === 0n) {
+    //     console.log("Point at Infinity.")
+    //     return false;
+    // }
 
     // 7. Calculate v = x mod n
     //const v = R[0] % n;
     const v = R[0]
     // 8. The signature is valid if and only if v = r
     if(v === r){
+        console.log("Recovery Point:",R);
+        console.log("Siganture recieved:", {r:r, s:s})
+        console.log("X-affine of RecoveryPoint R == r of signature. Hence valid signature.")
         console.log("Signature is valid.")
         return true
     }else{
         return false
     }
+}
+
+export async function proveableECDSAreturnR(ee:bigint , s: bigint, r: bigint, pub_x: bigint, pub_y: bigint): Promise<bigint> {
+  console.log("Inside ECDSA-library function.")
+  const p = BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F');
+  const n = BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141');
+
+  const G_x= BigInt('55066263022277343669578718895168534326250603453777594175500187360389116729240')
+  const G_y= BigInt('32670510020758816978083085130507043184471273380659243275938904335757337482424')
+
+  // 1. Verify that r and s are integers in [1, n-1]
+  // if (r <= 0n || r >= n || s <= 0n || s >= n) {
+  //     return false;
+  // }
+
+  // 2. Calculate e = HASH(m). Recieve this directly from zkProgram.
+  const e = BigInt(ee);
+  console.log('Inside Function :',e);
+
+  // 3. Calculate w = s^-1 mod n
+  const sInv = await modInverse(s,n);
+
+  // 4. Calculate u1 = ew mod n and u2 = rw mod n
+  const u1 = (e * sInv) % n; 
+  const u2 = (r * sInv) % n; 
+
+  // 5. Calculate (x, y) = u1G + u2Q
+  const point1 = await ellipticCurveMultiply(u1, G_x, G_y, p);
+  const point2 = await ellipticCurveMultiply(u2, pub_x, pub_y, p);
+  const R = await ellipticCurveAdd(point1[0], point1[1], point2[0], point2[1], p);
+  
+  await modularTests(point1,point1,G_x,G_y,p);
+ 
+  // 6. If (x, y) = O (the point at infinity), the signature is invalid
+  // if (R[0] === 0n && R[1] === 0n) {
+  //     console.log("Point at Infinity.")
+  //     return false;
+  // }
+
+  // 7. Calculate v = x mod n
+  //const v = R[0] % n;
+  const v = R[0]
+  // 8. The signature is valid if and only if v = r
+  // if(v === r){
+  //     console.log("Recovery Point:",R);
+  //     console.log("Siganture recieved:", {r:r, s:s})
+  //     console.log("X-affine of RecoveryPoint R == r of signature. Hence valid signature.")
+  //     console.log("Signature is valid.")
+  //     return true
+  // }else{
+  //     return false
+  // }
+  return v
 }
 
 async function actualTestUsingTLSNValues(){
@@ -280,7 +334,7 @@ async function actualTestUsingTLSNValues(){
     71434212616171258881167833273589199798160798266365951356480825534922218147392n
     71434212616171258881167833273589199798160798266365951356480825534922218147392n
 
-    const resultOwn = await proveableECDSA(
+    const resultOwn = await proveableECDSAnonField(
         //message,
         71434212616171258881167833273589199798160798266365951356480825534922218147392n, 
         signatureNoble.s,
@@ -311,7 +365,7 @@ async function proveableECDSAtest(){
     x:59584560953242332934734563514771605484743832818030684748574986816321863477095n,
     y:35772424464574968427090264313855970786042086272413829287792016132157953251778n
   }
-  const result = await proveableECDSA(e ,s, r,publicKey.x,publicKey.y)
+  const result = await proveableECDSAnonField(e ,s, r,publicKey.x,publicKey.y)
   if(result){
     console.log("Valid Signature!")
   }
@@ -320,7 +374,7 @@ async function proveableECDSAtest(){
 
 //await actualTestUsingTLSNValues();
 //await interoperableBigint();
-await proveableECDSAtest(); 
+//await proveableECDSAtest(); 
 
 
   
